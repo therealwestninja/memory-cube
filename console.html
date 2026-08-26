@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude Persona Console</title>
+<style>
+  :root { --bg:#101216; --panel:#181b21; --line:#2a2f38; --text:#d6dae1; --dim:#8a919d; --acc:#6aa1ff; --warn:#e0a34c; --ok:#5fbf77; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 "Segoe UI",system-ui,sans-serif; }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:baseline; }
+  header h1 { font-size:16px; margin:0; font-weight:600; }
+  header .sub { color:var(--dim); font-size:12px; }
+  main { display:grid; grid-template-columns: 1fr 1fr; gap:16px; padding:16px 20px; max-width:1280px; margin:0 auto; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px 16px; }
+  section h2 { font-size:13px; margin:0 0 10px; color:var(--acc); font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+  .dial { display:grid; grid-template-columns: 110px 1fr 52px; gap:10px; align-items:center; margin:6px 0; }
+  .dial label { color:var(--dim); font-size:12px; }
+  .dial output { font-variant-numeric:tabular-nums; text-align:right; font-size:12px; }
+  input[type=range] { width:100%; accent-color:var(--acc); }
+  .presets { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .presets button, .actions button { background:#20242c; border:1px solid var(--line); color:var(--text); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; }
+  .presets button.on { border-color:var(--acc); color:var(--acc); }
+  .actions button.primary { border-color:var(--acc); color:var(--acc); }
+  .actions button.danger { border-color:var(--warn); color:var(--warn); }
+  textarea, input[type=text] { width:100%; background:#12151a; border:1px solid var(--line); color:var(--text); border-radius:6px; padding:6px 8px; font:13px/1.4 Consolas,monospace; }
+  textarea { resize:vertical; min-height:44px; }
+  .field { margin:8px 0; }
+  .field .lbl { font-size:12px; color:var(--dim); margin-bottom:3px; }
+  pre { background:#12151a; border:1px solid var(--line); border-radius:6px; padding:10px; font:12px/1.5 Consolas,monospace; white-space:pre-wrap; overflow-x:auto; max-height:340px; overflow-y:auto; }
+  .steer { color:var(--ok); font-size:13px; margin:6px 0; }
+  .hint { display:inline-block; background:#20242c; border:1px solid var(--line); border-radius:10px; padding:1px 8px; font-size:11px; margin-right:4px; color:var(--warn); }
+  .actions { display:flex; gap:8px; margin-top:10px; align-items:center; }
+  .status { font-size:12px; color:var(--dim); }
+  .qrow { display:flex; gap:8px; margin-bottom:10px; }
+  .qrow input[type=text].asof { width:120px; flex:none; }
+  .hit { border-top:1px solid var(--line); padding:8px 0; }
+  .hit .top { display:flex; justify-content:space-between; gap:8px; }
+  .hit .id { color:var(--acc); font:12px Consolas,monospace; }
+  .hit .meta { color:var(--dim); font-size:11px; }
+  .hit .desc { font-size:12px; color:var(--text); margin:3px 0; }
+  .bars { display:flex; gap:2px; height:6px; margin-top:4px; border-radius:3px; overflow:hidden; background:#12151a; }
+  .bars i { display:block; height:100%; }
+  .b-sem { background:var(--acc); } .b-prov { background:var(--ok); } .b-time { background:var(--warn); }
+  .hit button { background:none; border:1px solid var(--line); color:var(--dim); border-radius:5px; font-size:11px; cursor:pointer; padding:1px 7px; }
+  .legend { font-size:11px; color:var(--dim); margin-top:8px; }
+  .legend i { display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:middle; margin:0 3px 0 8px; }
+  .full { grid-column: 1 / -1; }
+  @media (max-width:900px){ main { grid-template-columns:1fr; } }
+</style></head>
+<body>
+<header>
+  <h1>Claude Persona Console</h1>
+  <div class="sub">Temperament dials → memory-shaped context · hypercube recall over <span id="memcount">?</span> memories</div>
+</header>
+<main>
+  <section>
+    <h2>Temperament dials</h2>
+    <div class="presets" id="presets"></div>
+    <div id="dials"></div>
+    <div class="steer" id="steer"></div>
+    <div id="hints"></div>
+    <div class="field"><div class="lbl">Traits (one per line — phrased as things you confirmed you want)</div><textarea id="traits"></textarea></div>
+    <div class="field"><div class="lbl">Hard lines (never do, regardless of any dial)</div><textarea id="hardlines"></textarea></div>
+    <div class="field"><div class="lbl">Voice notes (free text folded into How-to-apply)</div><input type="text" id="voice"></div>
+    <div id="pending"></div>
+    <div class="actions">
+      <button class="primary" id="save">Save + preview</button>
+      <button class="danger" id="installBtn">Install into Claude memory</button>
+      <span class="status" id="status"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Compiled memory (what Claude will recall)</h2>
+    <pre id="preview">—</pre>
+  </section>
+
+  <section class="full">
+    <h2>Hypercube recall (live, over the real memory corpus)</h2>
+    <div class="qrow">
+      <input type="text" id="q" placeholder="query, e.g. safeword safety stop">
+      <input type="text" id="asof" class="asof" placeholder="as-of (date)">
+      <span id="scopeGrants" class="status" style="white-space:nowrap;display:flex;gap:8px;align-items:center"></span>
+      <button class="primary" id="run" style="background:#20242c;border:1px solid var(--acc);color:var(--acc);border-radius:6px;padding:4px 12px;cursor:pointer">Query</button>
+    </div>
+    <div id="hits"></div>
+    <div class="legend">axis contribution:<i class="b-sem"></i>semantic<i class="b-prov"></i>provenance<i class="b-time"></i>valid-time · Forget = persisted tombstone (unreachable from every query until Unforget)</div>
+    <div class="status" id="forgotten"></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const DIALS = ["warmth","energy","playfulness","forwardness","steadiness"];
+let state = { persona:null, archetypes:{} };
+
+async function api(path, payload) {
+  const r = await fetch(path, payload ? { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(payload) } : {});
+  return r.json();
+}
+function readForm() {
+  const p = state.persona;
+  p.dials = {}; for (const k of DIALS) p.dials[k] = Number($("d-"+k).value);
+  p.traits = $("traits").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  p.hardLines = $("hardlines").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  p.voiceNotes = $("voice").value;
+  return p;
+}
+function renderDials() {
+  $("dials").innerHTML = DIALS.map(k =>
+    `<div class="dial"><label>${k}</label><input type="range" id="d-${k}" min="-1" max="1" step="0.05" value="${state.persona.dials[k]||0}"><output id="o-${k}">${(state.persona.dials[k]||0).toFixed(2)}</output></div>`).join("");
+  for (const k of DIALS) $("d-"+k).oninput = () => { $("o-"+k).textContent = Number($("d-"+k).value).toFixed(2); state.persona.preset = null; markPreset(); save(); };
+}
+function markPreset() {
+  document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("on", b.dataset.name === state.persona.preset));
+}
+function renderPresets() {
+  $("presets").innerHTML = Object.keys(state.archetypes).map(n => `<button data-name="${n}">${n}</button>`).join("") + `<button data-name="">neutral</button>`;
+  document.querySelectorAll("#presets button").forEach(b => b.onclick = () => {
+    const n = b.dataset.name;
+    state.persona.preset = n || null;
+    const src = n ? state.archetypes[n] : { warmth:0, energy:0, playfulness:0, forwardness:0, steadiness:0 };
+    for (const k of DIALS) { $("d-"+k).value = src[k] || 0; $("o-"+k).textContent = (src[k]||0).toFixed(2); }
+    markPreset(); save();
+  });
+}
+function renderProjection(proj) {
+  $("steer").textContent = proj.tone ? "steer: " + proj.tone : "steer: (neutral — no behavior change)";
+  $("hints").innerHTML = proj.toneHints.map(h => `<span class="hint">${h}</span>`).join("") || "";
+}
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const r = await api("/api/persona", { persona: readForm() });
+    $("preview").textContent = r.markdown + Object.entries(r.sealedDocs || {})
+      .map(([id, md]) => `\n\n════ SEALED ${id.toUpperCase()} (persona-claude-${id}.md — never indexed) ════\n\n` + md).join("");
+    renderProjection(r.projection);
+    renderPending(r.pending || []);
+    $("status").textContent = "saved " + new Date().toLocaleTimeString();
+  }, 250);
+}
+// "did you mean...?" pre-fire: ambiguous terms sit sealed in the first candidate compartment until answered;
+// answering stores a per-item override (compartment id or "public").
+function renderPending(list) {
+  const label = (id) => (state.compartments.find((c) => c.id === id) || { label: id }).label;
+  $("pending").innerHTML = list.map((p, i) =>
+    `<div class="field" style="border:1px solid var(--warn);border-radius:6px;padding:6px 8px">
+      <div class="lbl" style="color:var(--warn)">"${p.terms.join('", "')}" — which compartment? (sealed in ${label(p.candidates[0])} until answered)</div>
+      <div style="font-size:12px;margin-bottom:4px">${p.text.replace(/</g,"&lt;")}</div>
+      ${p.candidates.map((id) => `<button onclick="answerScope(${i},'${id}')" style="margin-right:6px">${label(id)}</button>`).join("")}
+      <button onclick="answerScope(${i},'public')">none — it's general</button>
+    </div>`).join("");
+  window._pending = list;
+}
+window.answerScope = (i, route) => {
+  const p = (window._pending || [])[i];
+  if (!p) return;
+  state.persona.scopeOverrides = state.persona.scopeOverrides || {};
+  state.persona.scopeOverrides[p.text] = route;
+  save();
+};
+$("save") && ($("save").onclick = save);
+$("installBtn").onclick = async () => {
+  const r = await api("/api/install", {});
+  $("status").textContent = "installed: " + r.installed;
+};
+async function runQuery() {
+  const grantScopes = [...document.querySelectorAll("#scopeGrants input:checked")].map((el) => el.dataset.id);
+  const r = await api("/api/query", { text: $("q").value, asOf: $("asof").value || null, k: 6, grantScopes });
+  $("hits").innerHTML = r.hits.length ? r.hits.map(h => {
+    const e = h.explain, total = Math.max(e.total, 0.0001);
+    const w = (x) => Math.max(1, Math.round(240 * x / total));
+    return `<div class="hit"><div class="top"><span class="id">${h.id}</span>
+      <span class="meta">${h.score.toFixed(3)} · ${h.provenance} · ${new Date(h.validFrom).toISOString().slice(0,10)}
+      <button onclick="forget('${h.id}')">Forget</button></span></div>
+      <div class="desc">${h.description.replace(/</g,"&lt;")}</div>
+      <div class="bars" style="width:240px"><i class="b-sem" style="width:${w(e.semantic)}px"></i><i class="b-prov" style="width:${w(e.provenance)}px"></i><i class="b-time" style="width:${w(e.time)}px"></i></div></div>`;
+  }).join("") : `<div class="status">nothing relevant (semantic floor / boundary)</div>`;
+}
+$("run").onclick = runQuery;
+$("q").onkeydown = (e) => { if (e.key === "Enter") runQuery(); };
+window.forget = async (id) => { const r = await api("/api/forget", { id }); showForgotten(r.forgotten); runQuery(); };
+window.unforget = async (id) => { const r = await api("/api/unforget", { id }); showForgotten(r.forgotten); runQuery(); };
+function showForgotten(list) {
+  $("forgotten").innerHTML = list.length ? "forgotten: " + list.map(id => `${id} <button onclick="unforget('${id}')">Unforget</button>`).join(" · ") : "";
+}
+(async function init() {
+  const s = await api("/api/state");
+  state.persona = s.persona; state.archetypes = s.archetypes; state.compartments = s.compartments || [];
+  $("scopeGrants").innerHTML = state.compartments.map((c) =>
+    `<label title="${(c.loadWhen||"").replace(/"/g,"&quot;")}" style="white-space:nowrap"><input type="checkbox" data-id="${c.id}"> ${c.label.toLowerCase()}</label>`).join("");
+  if (state.persona.preset && state.archetypes[state.persona.preset]) state.persona.dials = { ...state.archetypes[state.persona.preset] };
+  $("memcount").textContent = s.points;
+  renderPresets(); renderDials(); markPreset();
+  $("traits").value = (s.persona.traits||[]).join("\n");
+  $("hardlines").value = (s.persona.hardLines||[]).join("\n");
+  $("voice").value = s.persona.voiceNotes || "";
+  renderProjection(s.projection);
+  showForgotten(s.forgotten);
+  save();
+})();
+</script>
+</body></html>

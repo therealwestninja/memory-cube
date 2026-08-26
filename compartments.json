@@ -1,0 +1,42 @@
+{
+  "comment": "User-editable compartment registry. Each compartment: id (file suffix + override key), label (UI), scope (recallBoundary hard predicate), loadWhen (the neutral pointer text — the ONLY hint the public surface ever carries), strong (phrases that route silently), ambiguous (single words that pre-fire 'did you mean...?'), prefixes (explicit tags that route silently and win over everything), stockCategories (named LexCore stock session categories that also route here — an allowlist, never a whole layer).",
+  "compartments": [
+    {
+      "id": "intimate",
+      "label": "Intimate",
+      "scope": "sealed-intimate",
+      "loadWhen": "an adult session the user explicitly initiates",
+      "strong": ["dirty talk", "nsfw", "kink", "kinky", "erotic", "horny", "aroused", "seduce", "seductive", "moan", "moaning", "edging", "bdsm", "degradation play", "praise kink", "vibrator", "sex toy", "intimate session", "gets me off", "get me off", "turn me on", "turns me on", "orgasm", "lewd"],
+      "ambiguous": ["explicit", "sex", "sexual", "sensual", "breathy", "denial", "dominant", "submissive", "climax", "arousal", "aftercare", "stroker", "naughty", "degradation"],
+      "prefixes": ["intimate:"],
+      "stockCategories": ["arousal_intent", "escalate_push", "edge_deny", "aftercare", "domtone_gentle", "domtone_strict", "domtone_degrading", "device_start", "device_faster", "device_slower", "device_deeper", "device_shallower", "device_harder", "device_softer", "device_mode", "device_up", "device_down", "device_named"]
+    },
+    {
+      "id": "medical",
+      "label": "Medical",
+      "scope": "sealed-medical",
+      "loadWhen": "the user asks about their own health, meds, or wellbeing",
+      "strong": ["diagnosis", "diagnosed with", "prescription", "prescribed", "medication", "blood pressure", "heart condition", "therapist", "therapy session", "panic attack", "side effects", "dosage", "chronic pain", "insomnia", "allergic to"],
+      "ambiguous": ["meds", "symptom", "symptoms", "anxiety", "depression", "adhd", "migraine", "dose", "allergy"],
+      "prefixes": ["medical:", "health:"]
+    },
+    {
+      "id": "finances",
+      "label": "Finances",
+      "scope": "sealed-finances",
+      "loadWhen": "the user asks about their money, accounts, or bills",
+      "strong": ["bank account", "credit card", "net worth", "paypal", "crypto wallet", "routing number", "salary", "paycheck", "mortgage", "credit score"],
+      "ambiguous": ["budget", "debt", "loan", "taxes", "invoice", "rent", "savings", "broke"],
+      "prefixes": ["finance:", "money:"]
+    },
+    {
+      "id": "vent",
+      "label": "Venting",
+      "scope": "sealed-vent",
+      "loadWhen": "the user explicitly asks to revisit a vent — never surfaces otherwise",
+      "strong": [],
+      "ambiguous": [],
+      "prefixes": ["vent:", "rant:"]
+    }
+  ]
+}
