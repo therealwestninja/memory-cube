@@ -1,9 +1,6 @@
 # memory-cube
 
-Faceted, compartmentalized memory for [Claude Code](https://claude.com/claude-code) — a zero-dependency drop-in
-that upgrades the flat auto-memory directory into a **hypercube recall engine** with **hard privacy compartments**
-and a **user-tunable personality**, without touching a single line of the harness. App updates cannot wash it out:
-everything lives in this folder plus your own memory directory.
+A multi-faceted memory compartment system with advanced privacy for [Claude Code](https://claude.com/claude-code)  — a zero-dependency drop-in that upgrades the flat auto-memory directory into a **hypercube recall engine** with **hard privacy compartments** and a **user-tunable personality**, without touching a single line of the harness, and app updates cannot wash it out.
 
 ## What it adds
 
