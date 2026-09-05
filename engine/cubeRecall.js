@@ -1,27 +1,26 @@
-// cubeRecall.js — composed-space ("hypercube") recall over an EXISTING sparse point-set. It MATERIALISES NOTHING
-// (no kⁿ grid — it stores the points/refs you load and composes existing signals at query time), and it ships with
-// explain() from commit one because inspectability is a design goal (contestability: "why did you say that?"
-// answered with per-axis coordinates).
+// cubeRecall.js — Tier-2 of the memory-hypercube (docs/MEMORY-HYPERCUBE.md §5, restricted to §12's build stance). A THIN
+// composed-space recall over an EXISTING sparse point-set. It MATERIALISES NOTHING (no kⁿ grid — it stores the points/refs
+// you load and composes existing signals at query time), and it ships with explain() from commit one because inspectability
+// is a Rook north-star (§8 contestability: "why did you say that?" answered with per-axis coordinates).
 //
-// THREE axes only — the exact/safe structured ones: semantic + provenance + valid-time. Person/affect axes are
-// deliberately NOT here: learned-embedding offsets turn a personal memory store into a triangulation/exfiltration
-// surface, so they stay gated behind a future benchmark pass. Offsets are STRUCTURED only: offsets.asOf (the
-// valid-time view — "what did I believe last week") and offsets.provenance (prefer a provenance). No word2vec
-// vector arithmetic.
+// THREE axes only — the exact/safe structured ones (§12 Tier-2): semantic + provenance + valid-time. Person/affect axes are
+// deliberately NOT here: they are the learned-embedding offsets that turn memory into R1/R3's triangulation surface, gated
+// behind a future bench pass. Offsets are STRUCTURED only: offsets.asOf (the valid-time view — "what did I believe last
+// week") and offsets.provenance (prefer a provenance). No word2vec vector arithmetic.
 //
-// BOUNDARY GUARANTEE (non-negotiable, enforced structurally): every query runs boundary.filter() FIRST — the
+// §7 BOUNDARY GUARANTEE (non-negotiable, enforced structurally): every query runs boundary.filter() FIRST — the Tier-1
 // recallBoundary point-set pre-filter removes out-of-bounds points (tombstone/forget-floor/scope/valid-time) BEFORE any
 // distance is computed. Only survivors are scored. So an offset can bias DIRECTION (which provenance/time we prefer) but can
 // NEVER grant reach past a boundary (R1), and a tombstoned point is unreachable from EVERY asOf (R2). A high similarity can
 // never overwhelm a boundary because the boundary is a hard predicate applied to the point-set, not a soft weight in the sum.
 //
 // SEMANTIC axis: an injected embed(text)->vector gives cosine similarity; ABSENT, we fall back to an IDF-WEIGHTED-COSINE
-// keyword scorer built over the loaded point-set — NOT raw keyword. The benchmark FINDING was that a raw-keyword floor
+// keyword scorer built over the loaded point-set — NOT raw keyword. The cube-bench FINDING was that a raw-keyword floor
 // admits a spurious single shared word ("favorite dinosaur" → "favorite coffee", 0.5 raw). IDF down-weights common words, and
-// the unmatched DISTINCTIVE word (rare → high idf) inflates the query norm, so a lone common-word match scores near zero.
+// the unmatched DISTINCTIVE word (rare → high idf) inflates the query norm, so a lone common-word match scores near zero (§6).
 //
 // PURE: no clock/random/network/IO inside. asOf (the valid-time view) is passed per query, never read from a clock.
-// serialize()/restore() carries config + IDF stats; the caller re-load()s the points.
+// serialize()/restore() carries config + IDF stats; the caller re-load()s the points. House style mirrors memoryRank.js.
 
 const STOP = new Set(("a an the i you your my me of is are was were do did to in on at for it s t as now then " +
   "what where who when why how and or but not with about this that these those be been being have has had").split(" "));
@@ -32,9 +31,9 @@ export function makeCubeRecall({
   boundary = null,
   embed = null,
   // Axis weights are NOT hand-waved — they encode a policy (how far firsthand-ness / freshness may override a better keyword
-  // match) validated by a weights benchmark that grid-searched the simplex over labeled conflict cases; this default
-  // sits centrally in the feasible region (semantic 0.55-0.75, provenance 0.15-0.35, time 0.05-0.15). Change the
-  // scoring policy deliberately, not by nudging weights.
+  // match) that is validated + regression-guarded by bench/recall-weights-bench.mjs. That bench grid-searches the simplex over
+  // labeled conflict cases; this default sits centrally in the feasible region (feasible: semantic 0.55–0.75, provenance
+  // 0.15–0.35, time 0.05–0.15). Change scoring → re-run the bench; if the default leaves the region, the bench fails.
   weights = { semantic: 0.6, provenance: 0.25, time: 0.15 },
   floor = 0.15,
   idf = true,
@@ -65,7 +64,7 @@ export function makeCubeRecall({
 
   // ── SEMANTIC axis ──────────────────────────────────────────────────────────
   // idf-weighted cosine over content-word sets: the unmatched distinctive (rare, high-idf) query word inflates the query
-  // norm, so a lone common-word ("favorite") overlap scores near zero — the keyword-floor finding, fixed.
+  // norm, so a lone common-word ("favorite") overlap scores near zero — the bench's keyword-floor finding, fixed.
   function idfCosine(qWords, dWords) {
     if (!qWords.length || !dWords.length) return 0;
     const dSet = new Set(dWords);
@@ -85,7 +84,7 @@ export function makeCubeRecall({
       // PREFER a precomputed point.embedding (a minted-pack vector) — the whole power-up: the device skips on-device
       // embedding for items that already carry a vector in the SAME model space. Additive + backward-compatible: a point
       // without `.embedding` re-embeds from `.text` exactly as before. (Model-compat is enforced upstream at ingest — a
-      // wrong-space vector is never attached; model compatibility is the ingester's job.)
+      // wrong-space vector is never attached; see knowledgeMint.toPoints / §3.)
       const pv = (Array.isArray(p.embedding) && p.embedding.length) ? p.embedding : await embed(p.text);
       return Math.max(0, cosine(embQueryVec, pv));
     }
@@ -125,7 +124,7 @@ export function makeCubeRecall({
     return raws.map((x) => (Number.isFinite(x) ? (x - lo) / (hi - lo) : 0));
   }
 
-  // map structured offsets + ctx → the boundary's query context (an offset never reaches past a boundary).
+  // map structured offsets + ctx → the boundary's query context (an offset never reaches past a boundary — §7).
   function ctxFor(offsets = {}, ctx = {}) {
     return {
       scope: ctx.scope || "public",
@@ -171,7 +170,7 @@ export function makeCubeRecall({
     return relevant.slice(0, k);
   }
 
-  // explain(hit) — per-axis CONTRIBUTION (weight × axis similarity); the three sum to _score (inspectability).
+  // explain(hit) — per-axis CONTRIBUTION (weight × axis similarity); the three sum to _score (inspectability, §8).
   function explain(hit) {
     if (!hit || !hit._axes) return { semantic: 0, provenance: 0, time: 0, total: 0 };
     const w = hit._w || W;

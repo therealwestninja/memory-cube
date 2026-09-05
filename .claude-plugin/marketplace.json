@@ -1,0 +1,16 @@
+{
+  "name": "claude-persona-market",
+  "owner": { "name": "test", "email": "none@example.com" },
+  "description": "Single-plugin marketplace for the claude-persona drop-in.",
+  "plugins": [
+    {
+      "name": "claude-persona",
+      "source": ".",
+      "displayName": "Claude Persona",
+      "description": "User-tuned persona + hypercube memory recall, wired as universal SessionStart / UserPromptSubmit hooks.",
+      "category": "productivity",
+      "keywords": ["persona", "memory", "recall", "hooks"],
+      "license": "MIT"
+    }
+  ]
+}

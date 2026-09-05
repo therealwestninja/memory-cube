@@ -1,8 +1,13 @@
-'use strict';
-/* lexcore.cjs — LexCore: a dep-free language CLASSIFIER for session/safety language. Pairs with lexcore-lexicon.cjs.
+﻿'use strict';
+/* VENDORED SHARED MODULE â€” single source of truth is D:\Claude\fy-bridge-app\adapter\lexcore.js.
+ * This is a verbatim copy (dep-free UMD; Node require works). Keep the two copies in SYNC:
+ * edit the adapter/ original, then re-copy here. Do not diverge. Pairs with lexcore-lexicon.js. */
+/* lexcore.js â€” LexCore: the canonical dep-free language CLASSIFIER for the intimate/session stack.
  *
- * ONE deterministic, multi-label, negation-aware classifier driven by a data lexicon (lexcore-lexicon.cjs).
- * It is a portable UMD module with ZERO deps, coupled to NOTHING here.
+ * It replaces the ad-hoc scorers scattered across the codebase (brain.js's valenceCue, the RX_* scans
+ * in intimacyEngine.js) with ONE deterministic, multi-label, negation-aware classifier driven by a data
+ * lexicon (lexcore-lexicon.js). It is a portable UMD module with ZERO deps â€” it will be vendored into
+ * rook-core later, so it is coupled to NOTHING here.
  *
  * WHAT IT DOES: tokenizes text, matches phrase categories LONGEST-FIRST over the token stream, applies
  * clause-bounded NEGATION scoping (so "don't stop" reads as affirm, not hard_stop), scales confidence by
@@ -10,7 +15,7 @@
  * boolean safety/session/device flags, and a resolved domTone.
  *
  * SAFETY MODEL: L0 SAFETY categories (safeword/hard_stop/distress/consent_withdraw/fresh_consent) are
- * SOVEREIGN — they set the safety flags directly and can never be lowered by an extension. L1–L3
+ * SOVEREIGN â€” they set the safety flags directly and can never be lowered by an extension. L1â€“L3
  * (session escalation + device actuation) are DETECTION ONLY: they populate flags for a consumer to act
  * on; this module drives nothing. Wiring/gating is the consumer's job (LexCore L2).
  *
@@ -63,13 +68,13 @@
   function tokenize(text) {
     var t = String(text).toLowerCase();
     // normalize apostrophe variants
-    t = t.replace(/[‘’ʼ‛]/g, "'");
+    t = t.replace(/[â€˜â€™Ê¼â€›]/g, "'");
     var bangs = (t.match(/!/g) || []).length;
     // elongated chars ("sooo", "moreee", "yesss") -> intensity signal
     var longStretch = /([a-z])\1\1/.test(t);
     var tokens = [];
     // walk the string; a "word" = letters/digits with optional internal apostrophes. Punctuation between
-    // words that breaks a clause: , . ; : ? ! — and the literal word "but".
+    // words that breaks a clause: , . ; : ? ! â€” and the literal word "but".
     var re = /[a-z0-9]+(?:'[a-z0-9]+)*|[,.;:?!]/g, m;
     var pending = null;
     function flush(boundaryAfter) { if (pending !== null) { tokens.push({ w: pending, boundary: !!boundaryAfter }); pending = null; } }
@@ -161,7 +166,7 @@
         var globalMult = 1 + Math.min(0.5, tk.bangs * 0.15) + (tk.longStretch ? 0.15 : 0);
 
         // claimedLen[idx] = length of the LONGEST phrase that already covers this token. A new phrase of
-        // length L may match only if no covered token is claimed by a STRICTLY LONGER phrase — so a longer
+        // length L may match only if no covered token is claimed by a STRICTLY LONGER phrase â€” so a longer
         // phrase suppresses shorter overlapping ones ("don't stop" beats "stop"), but two equal-length
         // phrases in different layers co-fire ("harder" -> escalate_push AND device_harder).
         var claimedLen = new Array(toks.length);
@@ -313,7 +318,7 @@
     }
 
     function mergeExtension(res, patch, safetyLatched) {
-      // patch may add labels and set flags true — but must NOT clear a latched safety flag.
+      // patch may add labels and set flags true â€” but must NOT clear a latched safety flag.
       if (Array.isArray(patch.labels)) {
         for (var i = 0; i < patch.labels.length; i++) {
           var l = patch.labels[i];
@@ -351,7 +356,7 @@
       // stateless classifier; serialize just pins version + config shape for round-trip parity.
       return { version: VERSION, lang: (cfg.lexicon && cfg.lexicon.lang) || 'en', extensions: extensions.length };
     }
-    function restore(s) { /* stateless — nothing to restore; accept for API parity */ return; }
+    function restore(s) { /* stateless â€” nothing to restore; accept for API parity */ return; }
 
     return { classify: classify, serialize: serialize, restore: restore, version: VERSION };
   }

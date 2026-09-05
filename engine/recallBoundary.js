@@ -1,10 +1,10 @@
-// recallBoundary.js — the point-set PRE-FILTER for faceted memory recall. It runs
+// recallBoundary.js — the point-set PRE-FILTER for faceted memory recall (docs/MEMORY-HYPERCUBE.md §7/§12 Tier-1). It runs
 // BEFORE any distance/relevance is computed and removes memory points that are out of bounds — so an offset/analogy can bias
 // DIRECTION but can NEVER grant reach past a boundary (R1), and a tombstoned or forgotten point is unreachable from EVERY
 // axis and offset (R2). The whole security argument of the hypercube rests on these being HARD PREDICATES applied at the
 // point-set level, never soft weights that a high enough similarity could overwhelm.
 //
-// It is intentionally standalone and reusable — valuable for ANY faceted recall, with or without the cube.
+// It is intentionally standalone and reusable — valuable for ANY faceted recall, with or without the cube. Tier-2's
 // cubeRecall.js calls `filter()` first and only scores the survivors.
 //
 // PURE: no clock/random/network/IO. `asOf` (the valid-time view) is supplied per query by the caller, never read from a
@@ -18,8 +18,8 @@
 // A query CONTEXT says who is asking and in what view:
 //   { scope = "public", allowScopes = [], asOf }
 //   - scope       — the compartment the query runs in; a point's own scope is readable when it MATCHES this…
-//   - allowScopes — …or is in this EXPLICIT, caller-granted allow-list (a deliberate, logged read-only cross-context
-//                   merge — a grant the caller makes on purpose, never an implicit reach). Never a write path.
+//   - allowScopes — …or is in this EXPLICIT, caller-granted allow-list (the deliberate, logged read-only cross-context merge
+//                   of §9 — a grant the caller makes on purpose, never an implicit reach). Never a write path.
 //   - asOf        — the valid-time view; when given, a point must be valid at that instant. Omit → all-time (no time gate).
 
 export function makeRecallBoundary({ state = null } = {}) {
@@ -47,7 +47,7 @@ export function makeRecallBoundary({ state = null } = {}) {
   const floor = (scope) => floors.get(String(scope || "public")) || 0;
 
   // THE predicate — is this point reachable in this context? Order matters: the cheapest, most absolute bans first.
-  // Returns { ok, reason } so a caller can LOG why a point was excluded (inspectability: the boundary-first assertion).
+  // Returns { ok, reason } so a caller can LOG why a point was excluded (inspectability — §10 boundary-first assertion).
   function reachable(point, ctx = {}) {
     if (!point || point.id == null) return { ok: false, reason: "no-id" };
     if (isTombstoned(point.id)) return { ok: false, reason: "tombstoned" };            // R2 — from every axis/offset

@@ -1,5 +1,5 @@
 // recall.mjs — hypercube recall over the Claude Code memory directory. A DROP-IN: reads the same one-fact-per-file
-// markdown corpus Claude already uses; nothing here rewrites a memory. Built on the bundled engine (engine/cubeRecall.js
+// markdown corpus Claude already uses; nothing here rewrites a memory. Reuses Rook's engine verbatim (engine/cubeRecall.js
 // + engine/recallBoundary.js): boundary-first filtering (tombstones / forget-floor / valid-time) BEFORE any relevance
 // scoring, then the 3-axis composed score (semantic IDF-cosine + provenance + valid-time freshness).
 //
@@ -18,20 +18,16 @@
 //   node recall.mjs query "<text>" [--as-of 2026-07-01] [--k 5] [--provenance firsthand|told|inferred] [--explain]
 //   node recall.mjs forget <id>        node recall.mjs unforget <id>        node recall.mjs forgotten
 
-import { readFileSync, readdirSync, statSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeRecallBoundary } from "./engine/recallBoundary.js";
 import { makeCubeRecall } from "./engine/cubeRecall.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-// Point this at your Claude Code auto-memory directory, e.g. ~/.claude/projects/<project-slug>/memory.
-// Set CLAUDE_MEMORY_DIR (env) or edit the fallback below.
-import { homedir } from "node:os";
 export const MEMORY_DIR = process.env.CLAUDE_MEMORY_DIR ||
-  join(homedir(), ".claude", "projects", process.env.CLAUDE_PROJECT_SLUG || "default", "memory");
+  join(process.env.USERPROFILE || process.env.HOME || "", ".claude", "projects", "D--Claude", "memory");
 const BOUNDARY_FILE = join(HERE, "state", "boundary.json");
-mkdirSync(join(HERE, "state"), { recursive: true });
 
 // ── memory file -> point ─────────────────────────────────────────────────────
 function parseFrontmatter(raw) {
@@ -60,7 +56,7 @@ export function loadPoints(dir = MEMORY_DIR) {
       description: meta.description || "",
       type: meta.type || "project",
       // scoring surface: slug words + the curated description ONLY. Long jargon-dense bodies inflate the IDF-cosine
-      // doc norm unevenly and bury exact matches (a memory can lose its own query to a longer neighbor); the
+      // doc norm unevenly and bury exact matches (fy500-integration lost its own query to a longer neighbor); the
       // description is the write-time-curated recall key, which is exactly what this corpus's design intends.
       text: (meta.name || f).replace(/-/g, " ") + " " + (meta.description || "") ,
       body: body.slice(0, 400),

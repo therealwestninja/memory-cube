@@ -1,9 +1,9 @@
 // compile-persona.mjs — turn user-editable personality inputs into MEMORY-SHAPED CONTEXT, not instructions.
-// The thesis: a character-sheet instruction gets out-voted by everything else in
+// The thesis (memory: steer-via-context-not-persona): a character-sheet instruction gets out-voted by everything else in
 // context, so "act warmer" system text washes out — but a recalled feedback memory rides the same surface Claude's real
 // preferences ride, phrased as an observed fact with a Why and a How-to-apply, and that is the register Claude follows.
 //
-// Uses the temperament engine (engine/temperament.js): five -1..1 dials + archetype presets, and projectDials() to derive the one
+// Reuses Rook's temperament.js VERBATIM: the five -1..1 dials + archetype presets, and projectDials() to derive the one
 // blended tone steer + tone hints. Content ROUTING (not moderation) is the generalized compartment system — see
 // compartments.mjs/compartments.json: each input lands public or in one sealed compartment file per the registry
 // (intimate / medical / finances / vent / whatever the user adds), never indexed in MEMORY.md, reachable only through
@@ -13,7 +13,7 @@
 // Inputs (state/persona.json): { name, preset, dials{...}, traits[], hardLines[], voiceNotes, scopeOverrides{} }
 // Outputs: out/persona-claude*.md previews — install() copies them into the real memory dir + upserts ONE index line.
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { normalizeDials, projectDials, ARCHETYPES, DIAL_KEYS } from "./engine/temperament.js";
@@ -23,11 +23,9 @@ import { makeRouter, loadCompartments } from "./compartments.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PERSONA_FILE = join(HERE, "state", "persona.json");
 const OUT_DIR = join(HERE, "out");
-mkdirSync(OUT_DIR, { recursive: true }); mkdirSync(join(HERE, "state"), { recursive: true });
 const MEM_NAME = "persona-claude";
 
 export const DEFAULT_PERSONA = {
-  owner: "the user",   // how the profile refers to its author ("tuned by <owner>")
   name: "Claude",
   preset: null,
   dials: { warmth: 0, energy: 0, playfulness: 0, forwardness: 0, steadiness: 0 },
@@ -53,7 +51,6 @@ export function compile(personaIn, nowMs = Date.now()) {
   const router = makeRouter();
   const compartments = router.compartments;
 
-  const owner = persona.owner || "the user";
   const dialLine = DIAL_KEYS.map((k) => `${k} ${dials[k] >= 0 ? "+" : ""}${dials[k]}`).join(", ");
   const setVia = persona.preset ? `the "${persona.preset}" archetype` : "hand-set dials";
 
@@ -106,15 +103,15 @@ ${ib.join("\n")}
   const sealedCount = Object.values(counts).reduce((a, b) => a + b, 0);
 
   const body = [
-    `**Personality profile for ${persona.name} — tuned by ${owner} via the persona console (${date}), compiled through the temperament projection.** ` +
+    `**Personality profile for ${persona.name} — tuned by the user via the persona console (${date}), compiled through Rook's temperament projection.** ` +
       `Dials (${setVia}): ${dialLine}. This supersedes any earlier persona-claude profile.`,
     ``,
-    `**Why:** persona instructions wash out — chat context out-votes a character sheet. ` +
-      `Compiled into memory, the profile rides the recall surface the assistant actually follows, alongside the rest of ${owner}'s confirmed preferences.`,
+    `**Why:** persona instructions wash out — chat context out-votes a character sheet (see [[steer-via-context-not-persona]]). ` +
+      `Compiled into memory, the profile rides the recall surface Claude actually follows, alongside the rest of the user's confirmed preferences.`,
     ``,
-    `**How to apply:** ${apply.length ? apply.join("; ") : "neutral carriage — no behavior change until " + owner + " sets the dials"}.`,
+    `**How to apply:** ${apply.length ? apply.join("; ") : "neutral carriage — no behavior change until the user sets the dials"}.`,
   ];
-  if (tR.pub.length) body.push(``, `**Traits ${owner} confirmed they want:** ${tR.pub.join("; ")}.`);
+  if (tR.pub.length) body.push(``, `**Traits the user confirmed they want:** ${tR.pub.join("; ")}.`);
   if (hR.pub.length) body.push(``, `**Hard lines (never do, regardless of any dial):** ${hR.pub.join("; ")}.`);
   // the ONLY compartment trace the public surface carries: a generated-neutral pointer per non-empty compartment —
   // counts and load conditions, never user text.
@@ -135,7 +132,7 @@ metadata:
 
 ${body.join("\n")}
 `;
-  const indexLine = `- [Persona (user-tuned)](${MEM_NAME}.md) — ${owner}'s dial-set carriage; follow its How-to-apply.`;
+  const indexLine = `- [Persona (user-tuned)](${MEM_NAME}.md) — the user's dial-set carriage; follow its How-to-apply.`;
   return { markdown, sealedDocs, counts, sealedCount, pending, indexLine, projection: proj, dials, compartments };
 }
 

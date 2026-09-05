@@ -1,21 +1,24 @@
-// temperament.js — tune WHO the assistant is at BASELINE (its carriage / disposition) as a few DIALS, and project that
-// into concrete EXPRESSION biases the caller can actually apply. This is the resting temperament — the steady way it
-// carries itself — NOT a transient mood.
+// temperament.js — tune WHO the companion is at BASELINE (her carriage / disposition) as a few DIALS, and project that
+// into concrete EXPRESSION biases the app can actually apply. This is her resting temperament — the steady way she
+// carries herself — NOT a transient mood (that's pad.js, read off the live chem snapshot).
 //
-// DESIGN CONSTRAINT — this shapes EXPRESSION, never any underlying affect model. It outputs a CARRIAGE PROFILE that
-// biases the downstream expression layer:
-//   • prosody   — a speech BASELINE of multipliers around 1.0 ({ rate, pitch, volume }), clamped to safe speech
-//                 bands. A caller can multiply this into live mood prosody so temperament shifts the RESTING voice
-//                 without overriding the moment's affect.
-//   • tone      — a short imperative STEER string, foldable into a reply system prompt. It biases TONE, never CONTENT.
-//   • *Bias     — warmth / forwardness / play scalars a caller uses to nudge greeting warmth and forwardness.
-//   • toneHints — the assertive/appetitive registers a fierier baseline unlocks ("playful"/"flirty"/"leading"), so a
-//                 caller can actually SELECT a hot tone. Empty at neutral.
+// CRITICAL CONSTRAINT — WHY THIS SHAPES EXPRESSION, NOT CHEMISTRY. On the phone the affect model is a BUNDLED decider
+// that exposes NO chem setter: it is READ-ONLY (the app records the chem read via pad.js; it cannot set neuromodulator
+// setpoints). So temperament must NOT try to mutate dopamine/norepinephrine/serotonin/acetylcholine. Instead it outputs
+// a CARRIAGE PROFILE that biases the DOWNSTREAM EXPRESSION layer, never the affect core:
+//   • prosody   — a speech BASELINE of multipliers around 1.0 (same convention as pad.js's prosodyFor / prosody.js:
+//                 { rate, pitch, volume }), clamped to the same safe speech bands. The app can multiply this into the
+//                 live mood prosody so temperament shifts the RESTING voice without overriding the moment's affect.
+//   • tone      — a short imperative STEER string, folded into the reply system prompt like the existing mood / coping
+//                 steers. It biases TONE, never CONTENT.
+//   • *Bias     — warmth / forwardness / play scalars the app uses to nudge greeting warmth and how forward she is.
+//   • toneHints — the assertive/appetitive registers a fierier baseline unlocks ("playful"/"flirty"/"leading"), so the
+//                 app can actually SELECT a hot tone (lines up with planReply beats / expressionTags hot tags). Empty at neutral.
 //
 // PURE house style: makeTemperament({ state }), injected data only, no clock / no random / no IO, deterministic;
 // set() / preset() / read() / project() ; serialize() / restore() round-trip the dials exactly.
 //
-// THE INERT-AT-DEFAULT INVARIANT: an UNSET / neutral temperament (all dials 0)
+// THE INERT-AT-DEFAULT INVARIANT (mirrors pad.js / neuromodulation.js): an UNSET / neutral temperament (all dials 0)
 // projects to prosody { rate:1, pitch:1, volume:1 }, an EMPTY tone string, and ZERO biases — i.e. NO behavior change
 // until the user actually sets a temperament. Setting dials is opt-in personalization; the default is today's behavior.
 
@@ -68,7 +71,7 @@ export function normalizeDials(d) {
 export function projectDials(d) {
   const t = normalizeDials(d);
 
-  // PROSODY BASELINE — multipliers around 1.0, clamped to safe speech bands. Neutral dials → all 1.0.
+  // PROSODY BASELINE — multipliers around 1.0, clamped to pad.js's safe speech bands. Neutral dials → all 1.0.
   //   rate  ← energy (lively → faster), lightly damped when very even-keeled.
   //   pitch ← warmth + playfulness (warmer / brighter → a touch higher).
   //   volume← forwardness (takes initiative → projects a little more) + a small warmth lift.
@@ -87,9 +90,10 @@ export function projectDials(d) {
   const forwardnessBias = r3(t.forwardness);
   const playBias = r3(t.playfulness);
 
-  // TONE HINTS — the assertive/appetitive REGISTERS this baseline unlocks, named so a caller can actually SELECT one.
-  // Empty at neutral, so the hot registers only open once the user sets a fierier carriage.
-  // playfulness → playful (and, when warm, flirty); forwardness → leading.
+  // TONE HINTS — the assertive/appetitive REGISTERS this baseline unlocks, named so the app can actually SELECT one
+  // (they line up with planReply's tease/flirt/lead beats + expressionTags' [playful]/[flirty]/[commanding]). Empty at
+  // neutral, so the hot registers only open once the user sets a fierier carriage. This is the projection reaching the
+  // new tones — not just the old +0.14 pitch nudge. playfulness → playful (and, when warm, flirty); forwardness → leading.
   const toneHints = [];
   if (t.playfulness >= 0.5) toneHints.push("playful");
   if (t.playfulness >= 0.5 && t.warmth >= 0.3) toneHints.push("flirty");

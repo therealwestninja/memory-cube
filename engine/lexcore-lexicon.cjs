@@ -1,13 +1,15 @@
 'use strict';
-/* lexcore-lexicon.cjs — DATA ONLY for the LexCore language classifier. No logic lives here. Pairs with lexcore.cjs.
+/* VENDORED SHARED MODULE — single source of truth is D:\Claude\fy-bridge-app\adapter\lexcore-lexicon.js.
+ * Verbatim copy; keep in SYNC with the adapter/ original (edit there, re-copy here). Pairs with lexcore.js. */
+/* lexcore-lexicon.js — DATA ONLY for the LexCore language classifier. No logic lives here.
  *
  * A flat table: categories -> { patterns:[phrase…], weight, layer, polarity }, plus a NEGATORS set,
  * a MODIFIERS (intensity) set, and a reserved top-level `lang:'en'` i18n hook (English tables sit
  * under `en`). The engine (lexcore.js) merges any caller lexicon over this default and does all the work.
  *
- * The seed vocabulary is a hand-tuned taxonomy for intimate-session language (SAFEWORD / FRESH / INTENT /
- * YES / PUSH / CLOSE(aftercare) / DISTRESS / COMPLY / REFUSE). Originally regex alternations with \b
- * boundaries; here they are plain lowercase
+ * The seed vocabulary is PORTED from rook-core/lib/intimacyEngine.js RX_* lexicons (the highest-quality
+ * hand-tuned taxonomy: SAFEWORD / FRESH / INTENT / YES / PUSH / CLOSE(aftercare) / DISTRESS / COMPLY /
+ * REFUSE). There the phrases are regex alternations with \b boundaries; here they are plain lowercase
  * token-phrases (the engine tokenizes on word boundaries and matches phrases longest-first, so \b is
  * implicit and "nonstop" can never match "stop").
  *
