@@ -5,6 +5,5 @@
   "description": "User-tuned persona carriage + hypercube memory recall. SessionStart injects the active dial-set; UserPromptSubmit grounds memory-shaped prompts with leak-safe compartment routing. Drop-in, update-proof.",
   "author": { "name": "test", "email": "none@example.com" },
   "keywords": ["persona", "memory", "recall", "hooks", "personality"],
-  "license": "MIT",
-  "hooks": "./hooks/hooks.json"
+  "license": "MIT"
 }
