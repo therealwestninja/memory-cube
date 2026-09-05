@@ -6,10 +6,11 @@
       "label": "Intimate",
       "scope": "sealed-intimate",
       "loadWhen": "an adult session the user explicitly initiates",
-      "strong": ["dirty talk", "nsfw", "kink", "kinky", "erotic", "horny", "aroused", "seduce", "seductive", "moan", "moaning", "edging", "bdsm", "degradation play", "praise kink", "vibrator", "sex toy", "intimate session", "gets me off", "get me off", "turn me on", "turns me on", "orgasm", "lewd"],
-      "ambiguous": ["explicit", "sex", "sexual", "sensual", "breathy", "denial", "dominant", "submissive", "climax", "arousal", "aftercare", "stroker", "naughty", "degradation"],
+      "strong": ["dirty talk", "nsfw", "bdsm", "praise kink", "degradation play", "sex toy", "sex toys", "intimate session", "erotic roleplay", "adult roleplay", "turn me on", "turns me on", "turned me on", "get me off", "gets me off"],
+      "ambiguous": ["explicit", "sex", "sexual", "sensual", "breathy", "denial", "dominant", "submissive", "climax", "arousal", "aftercare", "stroker", "naughty", "degradation", "kink", "kinky", "erotic", "horny", "aroused", "seduce", "seductive", "moan", "moaning", "edging", "vibrator", "orgasm", "lewd"],
       "prefixes": ["intimate:"],
-      "stockCategories": ["arousal_intent", "escalate_push", "edge_deny", "aftercare", "domtone_gentle", "domtone_strict", "domtone_degrading", "device_start", "device_faster", "device_slower", "device_deeper", "device_shallower", "device_harder", "device_softer", "device_mode", "device_up", "device_down", "device_named"]
+      "_stockCategories_note": "Deliberately empty. Stock LexCore session/device categories (device_faster/harder/deeper, arousal_intent, escalate_push, ...) belong to a live intimate-session runtime, NOT to a persona hook that classifies EVERY prompt in every project — there 'go faster' / 'push harder' / 'dig deeper' are innocent work commands and must never silently seal into a scope. Routing here is phrase-level (strong) + ask-first (ambiguous) only.",
+      "stockCategories": []
     },
     {
       "id": "medical",
